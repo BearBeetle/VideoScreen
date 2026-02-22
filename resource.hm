@@ -1,0 +1,5 @@
+// Microsoft Developer Studio generated Help ID include file.
+// Used by VS.rc
+//
+#define HIDC_CHECK_MUTE                 0x87d303ed    // IDD_DIALOG_SETUP
+#define HIDC_CHECK_TITLE                0x87d303f2    // IDD_DIALOG_SETUP
