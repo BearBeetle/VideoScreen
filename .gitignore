@@ -1,0 +1,11 @@
+# Visual Studio テンポラリファイル
+.vs/
+Debug/
+Release/
+x64/
+*.user
+*.aps
+*.bak
+*.pdb
+*.obj
+*.log
