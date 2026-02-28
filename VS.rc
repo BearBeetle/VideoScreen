@@ -65,59 +65,41 @@ END
 // Dialog
 //
 
-IDD_DIALOG_SETUP DIALOGEX 0, 0, 298, 207
+DLG_SCRNSAVECONFIGURE DIALOGEX 0, 0, 298, 223
 STYLE DS_SETFONT | DS_MODALFRAME | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "ヴィデオ・スクリーン v2.00"
+CAPTION "ヴィデオ・スクリーン v3.00"
 FONT 9, "ＭＳ Ｐゴシック", 0, 0, 0x1
 BEGIN
     LTEXT           "再生コンテンツ一覧",IDC_STATIC,92,4,75,9
-    LISTBOX         IDC_LIST_CONTENTS,7,20,230,70,LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_LIST_CONTENTS,7,20,230,81,LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON   "OK",IDOK,241,4,50,14
     PUSHBUTTON      "ｷｬﾝｾﾙ",IDCANCEL,241,19,50,14
-    PUSHBUTTON      "追加",IDC_BUTTON_ADD,241,39,50,14
-    PUSHBUTTON      "削除",IDC_BUTTON_DEL,241,54,50,14
-    PUSHBUTTON      "全部削除",IDC_BUTTON_DEL_ALL,241,69,50,14
-    PUSHBUTTON      "↑",IDC_BUTTON_UP,241,89,50,14
-    PUSHBUTTON      "↓",IDC_BUTTON_DOWN,241,104,50,14
-    CONTROL         "ランダム再生",IDC_CHECK_RAND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,97,58,13
-    CONTROL         "続き再生",IDC_CHECK_CONT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,110,58,13
-    CONTROL         "消音",IDC_CHECK_MUTE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,123,57,13,0,HIDC_CHECK_MUTE
-    CONTROL         "ﾌｧｲﾙ名表示",IDC_CHECK_TITLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,136,57,13,0,HIDC_CHECK_TITLE
-    LTEXT           "表示サイズ",IDC_STATIC,67,99,70,8
-    LTEXT           "表示サイズ（％）",IDC_STATIC,66,118,102,10
-    LTEXT           "表示位置変更間隔 ( 0…表示位置固定 )",IDC_STATIC,67,135,136,13
-    LTEXT           "再生停止時間( 0…停止せず )",IDC_STATIC,66,152,136,11
-    COMBOBOX        IDC_COMBO_SIZE,154,95,82,58,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT_SIZE,195,113,41,12,ES_RIGHT | ES_NUMBER | WS_DISABLED
-    EDITTEXT        IDC_EDIT_INTERVAL,208,133,18,12,ES_RIGHT | ES_NUMBER
-    CONTROL         "Spin1",IDC_SPIN_INTERVAL,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_NOTHOUSANDS,226,132,9,12
-    LTEXT           "秒",IDC_STATIC,240,135,14,10
-    EDITTEXT        IDC_EDIT_ENDTIME,208,151,18,12,ES_RIGHT | ES_NUMBER
-    CONTROL         "Spin1",IDC_SPIN_ENDTIME,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_NOTHOUSANDS,226,151,9,12
-    LTEXT           "分",IDC_STATIC,240,154,14,10
-    LTEXT           "スクリーンセーバ動作中に「N」キーを押すと、次のコンテンツを再生します。  「R」キーを押すと、再生中のコンテンツの頭に戻ります。  「S」キーを押すと消音オン／オフをトグルします。",IDC_STATIC,7,171,284,18,SS_SUNKEN
-    PUSHBUTTON      "(c) 1997-2018, BearBeetle",IDC_BUTTON_COPYRIGHT,7,189,186,11
-    PUSHBUTTON      "ヘルプ",IDC_BUTTON_HELP,193,189,98,11
+    PUSHBUTTON      "ファイル追加",IDC_BUTTON_ADD,241,39,50,14
+    PUSHBUTTON      "削除",IDC_BUTTON_DEL,241,69,50,14
+    PUSHBUTTON      "全部削除",IDC_BUTTON_DEL_ALL,241,85,50,14
+    PUSHBUTTON      "↑",IDC_BUTTON_UP,241,101,50,14
+    PUSHBUTTON      "↓",IDC_BUTTON_DOWN,241,116,50,14
+    CONTROL         "ランダム再生",IDC_CHECK_RAND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,109,58,13
+    CONTROL         "続き再生",IDC_CHECK_CONT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,122,58,13
+    CONTROL         "消音",IDC_CHECK_MUTE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,135,57,13,0,HIDC_CHECK_MUTE
+    CONTROL         "ﾌｧｲﾙ名表示",IDC_CHECK_TITLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,148,57,13,0,HIDC_CHECK_TITLE
+    LTEXT           "表示サイズ",IDC_STATIC,67,111,70,8
+    LTEXT           "表示サイズ（％）",IDC_STATIC,66,130,102,10
+    LTEXT           "表示位置変更間隔 ( 0…表示位置固定 )",IDC_STATIC,67,147,136,13
+    LTEXT           "再生停止時間( 0…停止せず )",IDC_STATIC,66,164,136,11
+    COMBOBOX        IDC_COMBO_SIZE,154,107,82,58,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_SIZE,195,125,41,12,ES_RIGHT | ES_NUMBER | WS_DISABLED
+    EDITTEXT        IDC_EDIT_INTERVAL,208,145,18,12,ES_RIGHT | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN_INTERVAL,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_NOTHOUSANDS,226,144,10,12
+    LTEXT           "秒",IDC_STATIC,240,147,14,10
+    EDITTEXT        IDC_EDIT_ENDTIME,208,163,18,12,ES_RIGHT | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN_ENDTIME,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_NOTHOUSANDS,226,163,10,12
+    LTEXT           "分",IDC_STATIC,240,166,14,10
+    LTEXT           "スクリーンセーバ動作中に「N」キーを押すと、次のコンテンツを再生します。  「R」キーを押すと、再生中のコンテンツの頭に戻ります。  「S」キーを押すと消音オン／オフをトグルします。",IDC_STATIC,7,186,284,18,SS_SUNKEN
+    PUSHBUTTON      "Copyright  1997-2026, BearBeetle",IDC_BUTTON_COPYRIGHT,7,205,186,11
+    PUSHBUTTON      "ヘルプ",IDC_BUTTON_HELP,193,205,98,11
+    PUSHBUTTON      "URL追加",IDC_BUTTON_ADD2,241,54,50,14
 END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_DIALOG_SETUP, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 291
-        TOPMARGIN, 4
-        BOTTOMMARGIN, 200
-    END
-END
-#endif    // APSTUDIO_INVOKED
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -125,7 +107,7 @@ END
 // AFX_DIALOG_LAYOUT
 //
 
-IDD_DIALOG_SETUP AFX_DIALOG_LAYOUT
+DLG_SCRNSAVECONFIGURE AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
@@ -144,6 +126,86 @@ BEGIN
 END
 
 #endif    // 日本語 (日本) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英語 (米国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+DLG_SCRNSAVECONFIGURE DIALOGEX 0, 0, 298, 223
+STYLE DS_SETFONT | DS_MODALFRAME | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Video Screen v3.00"
+FONT 9, "Segoe UI", 0, 0, 0x1
+BEGIN
+    LTEXT           "Playlist",IDC_STATIC,92,4,75,9
+    LISTBOX         IDC_LIST_CONTENTS,7,20,230,81,LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,241,4,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,241,19,50,14
+    PUSHBUTTON      "Add File(s)",IDC_BUTTON_ADD,241,39,50,14
+    PUSHBUTTON      "Add URL",IDC_BUTTON_ADD2,241,54,50,14
+    PUSHBUTTON      "Remove",IDC_BUTTON_DEL,241,69,50,14
+    PUSHBUTTON      "Clear All",IDC_BUTTON_DEL_ALL,241,85,50,14
+    PUSHBUTTON      "Up",IDC_BUTTON_UP,241,101,50,14
+    PUSHBUTTON      "Down",IDC_BUTTON_DOWN,241,116,50,14
+    CONTROL         "Random",IDC_CHECK_RAND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,109,58,13
+    CONTROL         "Continuous",IDC_CHECK_CONT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,122,58,13
+    CONTROL         "Mute",IDC_CHECK_MUTE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,135,57,13,0,HIDC_CHECK_MUTE
+    CONTROL         "Show Title",IDC_CHECK_TITLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,148,57,13,0,HIDC_CHECK_TITLE
+    LTEXT           "Display Size",IDC_STATIC,67,111,70,8
+    LTEXT           "Custom Size (%)",IDC_STATIC,66,130,102,10
+    LTEXT           "Move Interval (0: Fixed)",IDC_STATIC,67,147,136,13
+    LTEXT           "Stop After (0: None)",IDC_STATIC,66,164,136,11
+    COMBOBOX        IDC_COMBO_SIZE,154,107,82,58,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_SIZE,195,125,41,12,ES_RIGHT | ES_NUMBER | WS_DISABLED
+    EDITTEXT        IDC_EDIT_INTERVAL,208,145,18,12,ES_RIGHT | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN_INTERVAL,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_NOTHOUSANDS,226,144,10,12
+    LTEXT           "sec",IDC_STATIC,240,147,14,10
+    EDITTEXT        IDC_EDIT_ENDTIME,208,163,18,12,ES_RIGHT | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN_ENDTIME,"msctls_updown32",UDS_SETBUDDYINT | UDS_AUTOBUDDY | UDS_NOTHOUSANDS,226,163,10,12
+    LTEXT           "min",IDC_STATIC,240,166,14,10
+    LTEXT           "Press 'N' to play next, 'R' to restart current, 'S' to toggle mute while the screensaver is running.",IDC_STATIC,7,186,284,18,SS_SUNKEN
+    PUSHBUTTON      "Copyright  1997-2026, BearBeetle",IDC_BUTTON_COPYRIGHT,7,205,186,11
+    PUSHBUTTON      "Help",IDC_BUTTON_HELP,193,205,98,11
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    DLG_SCRNSAVECONFIGURE, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_NAME            "Video Screen"
+    IDS_SECTION_NAME        "VS"
+    IDS_KEY_NAME            "FILENAMES"
+END
+
+#endif    // 英語 (米国) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

@@ -70,7 +70,6 @@ void Change0(char *strDat)
 	}
 }
 
-// (Gemini生成コード)
 // レジストリからMedia Playerの拡張子リストを取得する関数
 void GetWMPVideoFilter(char* outFilter, size_t bufferSize) {
 	HKEY hParentKey;
@@ -78,31 +77,31 @@ void GetWMPVideoFilter(char* outFilter, size_t bufferSize) {
 
 	outFilter[0] = '\0'; // 初期化
 
-	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, subkeyPath, 0, KEY_READ, &hParentKey) == ERROR_SUCCESS) {
+	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, subkeyPath, 0, KEY_READ | KEY_WOW64_64KEY, &hParentKey) == ERROR_SUCCESS) {
 		DWORD index = 0;
-		char subkeyName[256];
-		DWORD subkeyNameSize;
+		char valueName[256];
+		DWORD valueNameSize;
+		BYTE valueData[1024];
+		DWORD valueDataSize;
+		DWORD valueType;
+		LSTATUS sts;
 
-		// Types直下の「1」「2」「3」... というサブキーを列挙
 		while (1) {
-			subkeyNameSize = sizeof(subkeyName);
-			if (RegEnumKeyExA(hParentKey, index, subkeyName, &subkeyNameSize, NULL, NULL, NULL, NULL) != ERROR_SUCCESS) {
-				break;
+			valueNameSize = sizeof(valueName);
+			valueDataSize = sizeof(valueData);
+
+			sts = RegEnumValueA(hParentKey, index, valueName, &valueNameSize, NULL, &valueType, valueData, &valueDataSize);
+
+			if (sts != ERROR_SUCCESS) {
+				break; // 259 (ERROR_NO_MORE_ITEMS) が出たら終了
 			}
 
-			HKEY hSubKey;
-			if (RegOpenKeyExA(hParentKey, subkeyName, 0, KEY_READ, &hSubKey) == ERROR_SUCCESS) {
-				char extData[1024];
-				DWORD dataSize = sizeof(extData);
-				// 各キー内の "Extensions" という値を取得
-				if (RegQueryValueExA(hSubKey, "Extensions", NULL, NULL, (LPBYTE)extData, &dataSize) == ERROR_SUCCESS) {
-					// 取得した拡張子リスト(例: "*.wmv;*.wma")をoutFilterに追加
-					if (outFilter[0] != '\0') {
-						strcat_s(outFilter, bufferSize, ";");
-					}
-					strcat_s(outFilter, bufferSize, extData);
+			// 文字列データ (REG_SZ) の場合のみ処理
+			if (valueType == REG_SZ) {
+				if (outFilter[0] != '\0') {
+					strcat_s(outFilter, bufferSize, ";");
 				}
-				RegCloseKey(hSubKey);
+				strcat_s(outFilter, bufferSize, (char*)valueData);
 			}
 			index++;
 		}
@@ -174,14 +173,15 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 	int i, j, k;
 	char strSection[64], strKey[64], strSendDat[80], strDevName[80];
 	static char *strSizeList[] = {
-		"縮小表示",
+		"50%",
 		"100%",
 		"200%",
 		"300%",
-		"フルスクリーン",
-		"カスタム"
+		"Full Screen",
+		"Custum"
 	};
-	static HWND hwndEditSize;	// IDC_EDIT_SIZE のハンドル
+	static HWND hwndEditSize;			// IDC_EDIT_SIZE のハンドル
+
 
 	switch (uMsg) {
 

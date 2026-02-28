@@ -25,8 +25,8 @@
 #define IDC_BUTTON_COPYRIGHT            1017
 #define IDC_BUTTON_HELP                 1018
 #define IDC_CHECK_AREA_FULL             1019
-#define IDD_DIALOG_SETUP                2003
-#define IDC_STATIC                      -1
+#define IDC_BUTTON_ADD2                 1019
+#define DLG_SCRNSAVECONFIGURE           2003
 
 // Next default values for new objects
 // 

@@ -915,5 +915,13 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 BOOL WINAPI RegisterDialogClasses(HINSTANCE hInst)
 {
     hMainInstance = hInst;
+    LANGID lid = GetUserDefaultUILanguage();
+    // 日本語以外なら英語（ENU）を優先するようにスレッド言語を設定
+    if (PRIMARYLANGID(lid) == LANG_JAPANESE) {
+        SetThreadUILanguage(MAKELANGID(LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN));
+    }
+    else {
+        SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+    }
     return TRUE;
 }
