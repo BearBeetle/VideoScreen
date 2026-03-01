@@ -21,6 +21,8 @@ char strVideoFilter[400];	// 動画フィルタ文字列
 char strFileNames[32000];
 char strIniFile[MAX_PATH];  // V2
 extern HINSTANCE hMainInstance; /* screen saver instance handle  */
+static char g_url_input[512] = { 0 }; /* URL入力ダイアログから受け取るバッファ */
+
 
 #define INT_TIME_MAX	600	// 表示間隔最大値[s]
 #define	INT_TIME_MIN	0	// 表示間隔最小値[s] ※０のときは中心固定
@@ -165,7 +167,30 @@ BOOL AddFile(HWND hSSCD, char *strFileName[], int *iCount)
 	return TRUE;
 }
 
-/* 標準的なプロトタイプに修正 */
+INT_PTR CALLBACK DialogURLInputProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+	switch (message) {
+	case WM_INITDIALOG:
+		SetDlgItemTextA(hDlg, IDC_EDIT_URL, g_url_input);
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK) {
+			GetDlgItemTextA(hDlg, IDC_EDIT_URL, g_url_input, sizeof(g_url_input));
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		if (LOWORD(wParam) == IDCANCEL) {
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+
+
+/* 設定だあログボックス */
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	char *strDat[500], strSize[100];
@@ -363,6 +388,23 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 					SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_ADDSTRING, 0, (LPARAM)strFileName);
 				}
 			}
+			break;
+
+		case IDC_BUTTON_ADD2:
+				{
+					/* URL入力ダイアログを表示し、OK が押されたら g_url_input をリストに追加する */
+					INT_PTR dlgRes = DialogBox(hMainInstance, MAKEINTRESOURCEA(IDD_DIALOG_URL_INPUT), hwndDlg, DialogURLInputProc);
+					if (dlgRes == IDOK) {
+						if (g_url_input[0] != '\0') {
+							SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_ADDSTRING, 0, (LPARAM)g_url_input);
+							/* 必要ならここで g_url_input をクリアする */
+							g_url_input[0] = '\0';
+						}
+					}
+				}
+
+
+
 			break;
 
 		case IDC_BUTTON_DEL:

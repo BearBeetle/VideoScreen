@@ -75,6 +75,7 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,241,4,50,14
     PUSHBUTTON      "ｷｬﾝｾﾙ",IDCANCEL,241,19,50,14
     PUSHBUTTON      "ファイル追加",IDC_BUTTON_ADD,241,39,50,14
+    PUSHBUTTON      "URL追加",IDC_BUTTON_ADD2,241,54,50,14
     PUSHBUTTON      "削除",IDC_BUTTON_DEL,241,69,50,14
     PUSHBUTTON      "全部削除",IDC_BUTTON_DEL_ALL,241,85,50,14
     PUSHBUTTON      "↑",IDC_BUTTON_UP,241,101,50,14
@@ -98,8 +99,41 @@ BEGIN
     LTEXT           "スクリーンセーバ動作中に「N」キーを押すと、次のコンテンツを再生します。  「R」キーを押すと、再生中のコンテンツの頭に戻ります。  「S」キーを押すと消音オン／オフをトグルします。",IDC_STATIC,7,186,284,18,SS_SUNKEN
     PUSHBUTTON      "Copyright  1997-2026, BearBeetle",IDC_BUTTON_COPYRIGHT,7,205,186,11
     PUSHBUTTON      "ヘルプ",IDC_BUTTON_HELP,193,205,98,11
-    PUSHBUTTON      "URL追加",IDC_BUTTON_ADD2,241,54,50,14
 END
+
+IDD_DIALOG_URL_INPUT DIALOGEX 0, 0, 309, 77
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "URL追加"
+FONT 8, "ＭＳ Ｐゴシック", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,198,56,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,252,56,50,14
+    LTEXT           "動画ファイルのURLを入力してください.",IDC_STATIC,7,7,295,12
+    EDITTEXT        IDC_EDIT_URL,7,25,295,15,ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    DLG_SCRNSAVECONFIGURE, DIALOG
+    BEGIN
+    END
+
+    IDD_DIALOG_URL_INPUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 70
+    END
+END
+#endif    // APSTUDIO_INVOKED
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -108,6 +142,11 @@ END
 //
 
 DLG_SCRNSAVECONFIGURE AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DIALOG_URL_INPUT AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
@@ -177,6 +216,17 @@ BEGIN
     PUSHBUTTON      "Help",IDC_BUTTON_HELP,193,205,98,11
 END
 
+IDD_DIALOG_URL_INPUT DIALOGEX 0, 0, 309, 77
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add URL"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+DEFPUSHBUTTON   "OK", IDOK, 198, 56, 50, 14
+PUSHBUTTON      "Cancel", IDCANCEL, 252, 56, 50, 14
+LTEXT           "Input the URL of the video file.", IDC_STATIC, 7, 7, 295, 12
+EDITTEXT        IDC_EDIT_URL, 7, 25, 295, 15, ES_AUTOHSCROLL
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -189,8 +239,32 @@ BEGIN
     DLG_SCRNSAVECONFIGURE, DIALOG
     BEGIN
     END
+
+    IDD_DIALOG_URL_INPUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 70
+    END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+DLG_SCRNSAVECONFIGURE AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DIALOG_URL_INPUT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 
 /////////////////////////////////////////////////////////////////////////////
