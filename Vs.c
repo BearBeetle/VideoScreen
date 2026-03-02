@@ -4,9 +4,9 @@
  * 
  * <履歴>
  * V1.2 2018/XX/XX  VC6 → VS2022(v143) 対応修正：ANSI API 明示、関数プロトタイプ修正、バッファ安全化)
- * V2.0 2024/02/XX  動画再生をMCIからMedia Foundationに変更
+ * V3.0 2025/03/02  動画再生をMCIからWindows Media Playerに変更
  *
- * (c) 1997-2018,BearBeetle
+ * (c) 1997-2026,BearBeetle
  */
 
 #include <windows.h>
@@ -32,6 +32,7 @@ extern char strFileNames[MAX_PATH*1024];
 extern HINSTANCE hMainInstance; /* screen saver instance handle  */
 extern char strIniFile[];  // INIファイルパス
 extern void IniFileCreate();
+#define INT_TIMEOUT    100	// WM_TIMERが発生する間隔[ms]
 
 char    *strPlayFileName[500];
 int     iMaxPlayFile;        // 再生ファイル数
@@ -304,8 +305,6 @@ void MoveVideoWindow(BOOL IsFirstCall, BOOL IsMove)
     if (stVSize.lHeight > stScreenSize.lHeight)
         stVSize.lHeight = stScreenSize.lHeight;
 
-
-
     // ビデオウィンドウの設定
     {
         char buf[128];
@@ -514,29 +513,53 @@ void PlayNextContent(BOOL IsMove)
         if (IsFIns) {
             TitleWndOn(strPlayFileName[iCount]);
         }
-        DBG_Print("PlayNextContent Step5 End\n");
-
         SetActiveWindow(hMainWnd);
         BringWindowToTop(hMainWnd);  /* 最前面に移動 */
         SetFocus(hMainWnd);
-
-        PlayStep = 5; // 次のステップへ
+        if (Video_GetState() == MFP_MEDIAPLAYER_STATE_PLAYING) {
+            PlayStep = 6; // ステップを一つ飛ばす
+        } else {
+            DBG_Print("PlayNextContent Step4 State is not PLAYING\n");
+            PlayStep = 5; // 次のステップへ
+        }
         DBG_Print("PlayNextContent Step4 End\n");
         break;
 
-    case 5:
-        DBG_Print("PlayNextContent Step5 Start\n");
+	case 5:
+		DBG_Print("PlayNextContent Step5 Start\n");
         if (g_pPlayer == NULL) {
             DBG_Print("PlayNextContent Step5 End g_pPlayer == NULL\n");
             IsCancel = TRUE;
             break;
         }
+        switch ( Video_GetState()) {
+            case MFP_MEDIAPLAYER_STATE_PLAYING:
+                PlayStep = 6; // 次のステップへ
+                DBG_Print("PlayNextContent Step5 End : MFP_MEDIAPLAYER_STATE_PLAYING\n");
+                break;
+			case MFP_MEDIAPLAYER_STATE_STOPPED:
+                DBG_Print("PlayNextContent Step5 End : MFP_MEDIAPLAYER_STATE_STOPPED\n");
+                break;
+            default:
+                DBG_Print("PlayNextContent Step5 End : other\n");
+                IsCancel = TRUE;
+                break;
+        }
+        break;
+
+    case 6:
+        DBG_Print("PlayNextContent Step6 Start\n");
+        if (g_pPlayer == NULL) {
+            DBG_Print("PlayNextContent Step6 End g_pPlayer == NULL\n");
+            IsCancel = TRUE;
+            break;
+        }
         if (Video_GetState() != MFP_MEDIAPLAYER_STATE_PLAYING) {
-            DBG_Print("PlayNextContent Step5 End State is not PLAYING\n");
+            DBG_Print("PlayNextContent Step6 End State is not PLAYING\n");
             IsCancel = TRUE;
             break;
 		}
-        DBG_Print("PlayNextContent Step5 End\n");
+        DBG_Print("PlayNextContent Step6 End\n");
         break;
     }
 
@@ -710,9 +733,9 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         IsFIns = GetPrivateProfileIntA(strSection, "F_INS", FALSE, strIniFile);
 
         // タイマ設定
-        uIntValue = GetPrivateProfileIntA(strSection, "INTERVAL", 30, strIniFile) * 2;
+		uIntValue = GetPrivateProfileIntA(strSection, "INTERVAL", 30, strIniFile) * 1000;  // 秒 → ミリ秒
         if (!IsNoContents) {
-            uTimer = SetTimer(hwnd, 1, 500, NULL);
+            uTimer = SetTimer(hwnd, 1, INT_TIMEOUT, NULL);
             uTimerCount = 0;
         }
         nMauseMoveCount = 0;
@@ -753,13 +776,14 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             /* 動画再生中 */
             if (Video_GetState() == MFP_MEDIAPLAYER_STATE_PLAYING) {
-                uTimerCount++;
-                if (uTimerCount >= uIntValue) { // 60秒ごとに表示位置を変える
+                uTimerCount += INT_TIMEOUT;
+                if (uTimerCount >= uIntValue) { // 30秒ごとに表示位置を変える
                     uTimerCount = 0;
                     nMauseMoveCount = 0;
                     if (uIntValue != 0)
                         MoveVideoWindow(FALSE, TRUE);
                 }
+                PlayNextContent(FALSE);
                 IsTimeInt = FALSE;
                 break;
             }

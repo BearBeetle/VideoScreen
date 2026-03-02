@@ -2,9 +2,10 @@
  *	スクリーンセーバ（動画再生スクリーンセーバー）
  *
  *	オリジナル：VC6 / Windows XP 向け
-*	更新：v143/VS2022向けに修正 (ANSI API 明示、標準関数へ置換、関数プロトタイプ修正)
- *
- *	(c) 1997-2025,BearBeetle
+ *	更新：v1.43 VS2022向けに修正 (ANSI API 明示、標準関数へ置換、関数プロトタイプ修正)
+ *        V3.0  2025/03/02  動画再生をMCIからWindows Media Playerに変更
+ * 
+ *	(c) 1997-2026, BearBeetle
  *
  */
 #include <windows.h>
@@ -188,15 +189,13 @@ INT_PTR CALLBACK DialogURLInputProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
 	return (INT_PTR)FALSE;
 }
 
-
-
-/* 設定だあログボックス */
+/* 設定ダイアログボックス */
 BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	char *strDat[500], strSize[100];
 	int *lpIndexs;
 	int i, j, k;
-	char strSection[64], strKey[64], strSendDat[80], strDevName[80];
+	char strSection[64], strKey[64], strSendDat[80];
 	static char *strSizeList[] = {
 		"50%",
 		"100%",
@@ -214,13 +213,13 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 		IniFileCreate();
 		LoadStringA(hMainInstance, IDS_SECTION_NAME, strSection, (int)sizeof(strSection));
 		LoadStringA(hMainInstance, IDS_KEY_NAME, strKey, (int)sizeof(strKey));
-		// 各設定を INI から読み取り�iANSI 明示�j
+		// 各設定を INI から読み取り
 		CheckDlgButton(hwndDlg, IDC_CHECK_RAND, GetPrivateProfileIntA(strSection, "RAND", FALSE, strIniFile));
 		CheckDlgButton(hwndDlg, IDC_CHECK_CONT, GetPrivateProfileIntA(strSection, "CONT", FALSE, strIniFile));
 		CheckDlgButton(hwndDlg, IDC_CHECK_MUTE, GetPrivateProfileIntA(strSection, "MUTE", FALSE, strIniFile));
 		CheckDlgButton(hwndDlg, IDC_CHECK_TITLE, GetPrivateProfileIntA(strSection, "F_INS", FALSE, strIniFile));
 
-		// サイズコンボに文字列を追加�iANSI版を明示�j
+		// サイズコンボに文字列を追加
 		for (i = 0; i < 6; i++) {
 			SendDlgItemMessageA(hwndDlg, IDC_COMBO_SIZE, CB_ADDSTRING, 0, (LPARAM)strSizeList[i]);
 		}
@@ -271,13 +270,10 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 			hWndSpin = GetDlgItem(hwndDlg, IDC_SPIN_ENDTIME);
 			SendMessageA(hWndSpin, UDM_SETRANGE, 0L, MAKELONG(INT_TIME_MAX, INT_TIME_MIN));
 		}
-
 		// ファイルリスト取得
 		GetPrivateProfileStringA(strSection, strKey, "|", strFileNames, (DWORD)sizeof(strFileNames), strIniFile);
-#if 1	// 2026/02/07
 		char *p = strFileNames;
 		char* buf = (char*)malloc(MAX_PATH);
-
 		while ((p = strchr(p, '|')) != NULL) {
 			p++;  // '|' の次へ進む
 			const char* q = strchr(p, '|');  // 次の '|' を探す
@@ -289,85 +285,14 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 				buf[len] = '\0';
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_ADDSTRING, 0, (LPARAM)buf);
 			}
-			//p = q + 1;  // 次の検索位置へ
 		}
 		free(buf);
-
-#else
-		if (strFileNames[0] == '|' || strFileNames[0] == 0)
-			goto GET_FILE_EXE;
-		strDat[0] = strFileNames;
-		j = (int)strlen(strFileNames);
-		for (i = 0; i < j; i++) {
-			if (strFileNames[i] == '|'){
-				(strFileNames[i - 1] >= ' ' && strFileNames[i - 1] <= 'z') &&
-				(strFileNames[i - 1] != 0)) {
-				strFileNames[i] = '\0';
-				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_ADDSTRING, 0, (LPARAM)strDat[0]);
-				if (i < (j - 1)) {
-					strDat[0] = &strFileNames[i + 1];
-					i++;
-				}
-			}
-		}
-		GET_FILE_EXE:
-#endif
-		// MCI デバイス数取得
-		if (mciSendStringA("Sysinfo all quantity", strFileNames, (UINT)sizeof(strFileNames), NULL) != 0) {
-			MessageBoxA(hwndDlg, "MCI取得失敗", NULL, MB_OK);
-			EndDialog(hwndDlg, LOWORD(wParam) == IDOK);
-		}
-		// デバイス列挙からフィルタ作成
-		k = 0;
-		j = atoi(strFileNames);
-		strVideoFilter[0] = 0;
-		for (i = 1; i <= j; i++) {
-			sprintf_s(strSendDat, sizeof(strSendDat), "sysinfo all name %d ", i);
-			mciSendStringA(strSendDat, strDevName, (UINT)sizeof(strDevName), NULL);
-			if (_stricmp("ActiveMovie", strDevName) == 0 ||
-				_stricmp("MPEGVideo", strDevName) == 0) {
-				static BOOL IsFirst = TRUE;
-				if (IsFirst) {
-					IsFirst = FALSE;
-					if (k != 0) {
-						strVideoFilter[k] = ';';
-						k++;
-					}
-					strcpy_s(&strVideoFilter[k], sizeof(strVideoFilter) - k, "*.mpg;*.mpeg;*.mpe");
-					k += (int)strlen("*.mpg;*.mpeg;*.mpe");
-				}
-			}
-			if (_stricmp("QTWVideo", strDevName) == 0 ||
-				_stricmp("ActiveMovie", strDevName) == 0 ||
-				_stricmp("MPEGVIDEO", strDevName) == 0) {
-				static BOOL IsFirst2 = TRUE;
-				if (IsFirst2) {
-					IsFirst2 = FALSE;
-					if (k != 0) {
-						strVideoFilter[k] = ';';
-						k++;
-					}
-					strcpy_s(&strVideoFilter[k], sizeof(strVideoFilter) - k, "*.mov");
-					k += (int)strlen("*.mov");
-				}
-			}
-			if (_stricmp("avivideo", strDevName) == 0) {
-				static BOOL IsFirst3 = TRUE;
-				if (IsFirst3) {
-					IsFirst3 = FALSE;
-					if (k != 0) {
-						strVideoFilter[k] = ';';
-						k++;
-					}
-					strcpy_s(&strVideoFilter[k], sizeof(strVideoFilter) - k, "*.avi");
-					k += (int)strlen("*.avi");
-				}
-			}
-		}
 		break;
 
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
+
+		// 「ファイル追加」をクリックしたとき
 		case IDC_BUTTON_ADD:
 			j = 500;
 			if (AddFile(hwndDlg, strDat, &j)) {
@@ -390,6 +315,7 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 			}
 			break;
 
+		// 「URL追加」をクリックしたとき
 		case IDC_BUTTON_ADD2:
 				{
 					/* URL入力ダイアログを表示し、OK が押されたら g_url_input をリストに追加する */
@@ -402,57 +328,73 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 						}
 					}
 				}
-
-
-
 			break;
 
+		// 「削除」をクリックしたとき
 		case IDC_BUTTON_DEL:
 			lpIndexs = (LPINT)strFileNames;	// ワーク領域として流用
 			// 選択数取得
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETSELCOUNT, 0, 0);
 			// 選択インデックス取得
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETSELITEMS, j, (LPARAM)lpIndexs);
-			// 削除（後ろから�j
+			//選択した項目の削除
 			for (i = j - 1; i >= 0; i--) {
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_DELETESTRING, (WPARAM)lpIndexs[i], 0);
 			}
 			break;
 
+		// 「全部削除」をクリックしたとき
 		case IDC_BUTTON_DEL_ALL:
 			SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_RESETCONTENT, 0, 0);
 			break;
 
+		
+		// 「↑」をクリックしたとき
 		case IDC_BUTTON_UP:
 			lpIndexs = (LPINT)strFileNames;
+			// 選択したインデックスの数の取得　-> j
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETSELCOUNT, 0, 0);
+			// 選択したインデックスの取得　-> lpIndexs
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETSELITEMS, j, (LPARAM)lpIndexs);
 			for (i = 0; i < j; i++) {
 				char strListName[MAX_PATH];
+				// 上の項目のインデックス
 				k = lpIndexs[i] - 1;
+				// 上に項目のない時は戻る
 				if (k < 0) break;
+				// 上の項目の内容 -> strListName
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETTEXT, (WPARAM)k, (LPARAM)strListName);
+				// 上の項目（内容をstrListNameに格納済みの項目）を削除
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_DELETESTRING, (WPARAM)k, 0);
+				// 上の項目の内容を、下に挿入
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_INSERTSTRING, (WPARAM)(k + 1), (LPARAM)strListName);
 			}
 			break;
 
+		// 「↓」をクリックしたとき
 		case IDC_BUTTON_DOWN:
 			lpIndexs = (LPINT)strFileNames;
+			// 選択したインデックスの数の取得　-> j
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETSELCOUNT, 0, 0);
+			// 選択したインデックスの取得　-> lpIndexs
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETSELITEMS, j, (LPARAM)lpIndexs);
 			j--;
 			for (i = j; i >= 0; i--) {
 				char strListName[MAX_PATH];
+				// 下の項目のインデックス -> k
 				k = lpIndexs[i] + 1;
+				// 下の項目の内容 -> strListName
 				if (SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETTEXT, (WPARAM)k, (LPARAM)strListName) == LB_ERR) {
 					break;
 				}
+				// 下の項目（内容をstrListNameに格納済みの項目）を削除
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_DELETESTRING, (WPARAM)k, 0);
+				// 下の項目の内容を、上に挿入
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_INSERTSTRING, (WPARAM)(k - 1), (LPARAM)strListName);
 			}
 			break;
 
+		// 「OK」をクリックしたとき
 		case IDOK:
 			j = SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_GETCOUNT, 0, 0);
 			strFileNames[0] = '|';
@@ -470,30 +412,37 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 			LoadStringA(hMainInstance, IDS_KEY_NAME, strKey, (int)sizeof(strKey));
 			WritePrivateProfileStringA(strSection, strKey, strFileNames, strIniFile);
 
-			// 各チェックボックス
+			/*
+			 * 各チェックボックス
+			 */
+
+			// ランダム再生記録
 			if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_RAND))
 				WritePrivateProfileStringA(strSection, "RAND", "1", strIniFile);
 			else
 				WritePrivateProfileStringA(strSection, "RAND", "0", strIniFile);
 
+			// 続き再生
 			if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_CONT))
 				WritePrivateProfileStringA(strSection, "CONT", "1", strIniFile);
 			else
 				WritePrivateProfileStringA(strSection, "CONT", "0", strIniFile);
 
+			// 消音
 			if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_MUTE))
 				WritePrivateProfileStringA(strSection, "MUTE", "1", strIniFile);
 			else
 				WritePrivateProfileStringA(strSection, "MUTE", "0", strIniFile);
 
+			//  ファイル名表示
 			if (IsDlgButtonChecked(hwndDlg, IDC_CHECK_TITLE))
 				WritePrivateProfileStringA(strSection, "F_INS", "1", strIniFile);
 			else
 				WritePrivateProfileStringA(strSection, "F_INS", "0", strIniFile);
 
-			// サイズ
+			//	画面サイズ
 			i = SendDlgItemMessageA(hwndDlg, IDC_COMBO_SIZE, CB_GETCURSEL, 0, 0);
-			if (i == 4)
+			if (i == 4)	// ﾌﾙｽｸﾘｰﾝ
 				sprintf_s(strSize, sizeof(strSize), "0");
 			else
 				sprintf_s(strSize, sizeof(strSize), "%d", i);
@@ -543,8 +492,9 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 
 			WritePrivateProfileStringA(strSection, "POS", "0", strIniFile);
 			WritePrivateProfileStringA(strSection, "CONPOS", "-1", strIniFile);
+			// break は意図的に落とす（IDCANCEL へ)
 
-			// break は意図的に落とす（IDCANCEL へ�j
+		// 「ｷｬﾝｾﾙ」をクリックしたとき
 		case IDCANCEL:
 			EndDialog(hwndDlg, IDOK);
 			return TRUE;
@@ -570,12 +520,14 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 			}
 			return FALSE;
 
+		// 著作権表示
 		case IDC_BUTTON_COPYRIGHT:
-			ShellExecuteA(hwndDlg, NULL, "http://hp.vector.co.jp/authors/VA011973/", NULL, NULL, SW_SHOW);
+			ShellExecuteA(hwndDlg, NULL, "https://bearbeetle.github.io/bb-labo/", NULL, NULL, SW_SHOW);
 			return FALSE;
 
+		// ヘルプ表示
 		case IDC_BUTTON_HELP:
-			ShellExecuteA(hwndDlg, NULL, "http://hp.vector.co.jp/authors/VA011973/vs_help.htm", NULL, NULL, SW_SHOW);
+			ShellExecuteA(hwndDlg, NULL, "https://bearbeetle.github.io/bb-labo/vs_help.html", NULL, NULL, SW_SHOW);
 			return FALSE;
 		}
 	}
