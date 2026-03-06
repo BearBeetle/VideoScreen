@@ -596,19 +596,19 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     RECT rect;
     HDC hDc;
     PAINTSTRUCT ps;
-    HICON hicon;
+    static HICON hicon = NULL;
 
     switch (uMsg) {
     case WM_PAINT:
         if (IsSmall) {
-            hDc = BeginPaint( hwnd,&ps );
-            /* 文字列リソース名 "ID_APP" を使うため ANSI 版を明示 */
-            hicon = LoadIconA(hMainInstance, "ID_APP");
-            DrawIcon(hDc,0,0,hicon);
+            hDc = BeginPaint( hwnd, &ps );
+            if (hicon) {
+                DrawIcon(hDc, 0, 0, hicon);
+            }
             EndPaint( hwnd , &ps );
+			IsEnd = TRUE;
         } else {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hwnd, &ps);
+            hDc = BeginPaint(hwnd, &ps);
 
             // MFPlayに描画を更新させる
             if (g_pPlayer) {
@@ -622,9 +622,17 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_CREATE:
+        hicon = LoadIconA(hMainInstance, MAKEINTRESOURCEA(IDI_ICON1) );
         IniFileCreate();
         IsFirst = TRUE;
         hMainWnd = hwnd;
+        GetWindowRect(hwnd, &rect);
+        stScreenSize.lWidth = rect.right - rect.left;
+        if (stScreenSize.lWidth < 400) {
+            IsSmall = TRUE;
+            IsEnd = TRUE;
+            break;
+        }
         {
             RECT rc;
             GetClientRect(hMainWnd, &rc);
@@ -644,13 +652,6 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             DWORD error = GetLastError();
             char strDat[100];
             sprintf_s(strDat, sizeof(strDat), "CreateWindowEx failed! %u", error);
-        }
-        GetWindowRect(hwnd, &rect);
-        stScreenSize.lWidth = rect.right - rect.left;
-        if (stScreenSize.lWidth < 400) {
-            IsSmall = TRUE;
-            IsEnd = TRUE;
-            break;
         }
         LoadStringA(hMainInstance, IDS_SECTION_NAME, strSection, (int)sizeof(strSection));
         LoadStringA(hMainInstance, IDS_KEY_NAME, strKey, (int)sizeof(strKey));
