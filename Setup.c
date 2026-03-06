@@ -3,7 +3,7 @@
  *
  *	オリジナル：VC6 / Windows XP 向け
  *	更新：v1.43 VS2022向けに修正 (ANSI API 明示、標準関数へ置換、関数プロトタイプ修正)
- *        V3.0  2025/03/02  動画再生をMCIからWindows Media Playerに変更
+ *        V3.00 2026/03/02  動画再生をMCIからWindows Media Playerに変更
  * 
  *	(c) 1997-2026, BearBeetle
  *
@@ -527,8 +527,15 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 
 		// ヘルプ表示
 		case IDC_BUTTON_HELP:
-			ShellExecuteA(hwndDlg, NULL, "https://bearbeetle.github.io/bb-labo/vs_help.html", NULL, NULL, SW_SHOW);
-			return FALSE;
+			LANGID lid = GetUserDefaultUILanguage();
+			// 日本語以外なら英語（ENU）を優先するようにスレッド言語を設定
+			if (PRIMARYLANGID(lid) == LANG_JAPANESE) {
+				ShellExecuteA(hwndDlg, NULL, "https://bearbeetle.github.io/bb-labo/vs_help_j.html", NULL, NULL, SW_SHOW);
+			}
+			else {
+				ShellExecuteA(hwndDlg, NULL, "https://bearbeetle.github.io/bb-labo/vs_help_e.html", NULL, NULL, SW_SHOW);
+			}
+				return FALSE;
 		}
 	}
 	return FALSE;
