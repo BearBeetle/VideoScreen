@@ -477,15 +477,16 @@ void PlayNextContent(BOOL IsMove)
     case 3:
         DBG_Print("PlayNextContent Step3 Start\n");
         if (Video_GetState() == MFP_MEDIAPLAYER_STATE_EMPTY) {
+            static int retryCount = 0;
             DBG_Print("PlayNextContent Step3 (State=MFP_MEDIAPLAYER_STATE_EMPTY) End\n");
+            if (retryCount < 50) {
+                retryCount++;
+            } else {
+				retryCount = 0;
+                DBG_Print("PlayNextContent Step3 Err End after retries\n");
+                IsCancel = TRUE;
+			}
             break;
-        }
-        // デバッグ用：最終的な状態を確認
-        {
-            char stateBuf[64];
-            sprintf_s(stateBuf, sizeof(stateBuf), "Final State before Play: %d\n", Video_GetState());
-            DBG_Print(stateBuf);
-            DBG_Print("PlayNextContent Step3 End\n");
         }
         PlayStep = 4; // 次のステップへ
         break;
@@ -593,6 +594,9 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static UINT uTimer2 = 0, uMinCount = 0, uEndValue;
     static int nMauseMoveCount = 0;
     static BOOL IsSmall, IsTimeInt = FALSE;
+	static HBRUSH hBrushBlack; // 動画子ウィンドウ用の黒ブラシ
+
+
     RECT rect;
     HDC hDc;
     PAINTSTRUCT ps;
@@ -647,6 +651,7 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 hMainInstance,
                 NULL
             );
+            hBrushBlack = CreateSolidBrush(RGB(0, 0, 0)); // 動画子ウィンドウ用の黒ブラシ
         }
         if (hVideoChild == NULL) {
             DWORD error = GetLastError();
@@ -657,7 +662,6 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         LoadStringA(hMainInstance, IDS_KEY_NAME, strKey, (int)sizeof(strKey));
         GetPrivateProfileStringA(strSection, strKey, "", strFileNames, (DWORD)sizeof(strFileNames), strIniFile);
         j = (int)strlen(strFileNames);
-#if 1
         char* p = strFileNames;
         k = 0;
 
@@ -685,22 +689,6 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             fclose(fp);
         }
-#else
-        strPlayFileName[0] = strFileNames;
-        k = 1;
-        for (i = 1; i < j; i++) {
-            if (strFileNames[i] == '|' &&
-                (strFileNames[i - 1] >= ' ' && strFileNames[i - 1] <= 'z') &&
-                (strFileNames[i - 1] != 0)) {
-                strFileNames[i] = '\0';
-                if (i < (j - 1)) {
-                    strPlayFileName[k] = &strFileNames[i + 1];
-                    i++;
-                    k++;
-                }
-            }
-        }
-#endif
         iMaxPlayFile = k;
 
         IsEnd = FALSE;
@@ -931,8 +919,15 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
 		// PostMessage(hVideoChild, WM_CLOSE, 0, 0);
         break;
-    }
+    case WM_CTLCOLORSTATIC:
+        {
+            hDc = (HDC)wParam;
+            SetBkColor(hDc, RGB(0, 0, 0));   // 背景色を黒に
+            SetTextColor(hDc, RGB(255, 255, 255)); // 文字色（必要なら）
+            return (LRESULT)hBrushBlack;     // 黒ブラシを返す
+        }
 
+    }
     return DefScreenSaverProc(hwnd, uMsg, wParam, lParam);
 }
 
