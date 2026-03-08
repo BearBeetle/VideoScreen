@@ -4,7 +4,7 @@
  * 
  * <履歴>
  * V1.2 2018/XX/XX  VC6 → VS2022(v143) 対応修正：ANSI API 明示、関数プロトタイプ修正、バッファ安全化)
- * V3.0 2025/03/02  動画再生をMCIからWindows Media Playerに変更
+ * V3.0 2026/03/XX  動画再生をMCIからWMP(Windows Media Player)に変更
  *
  * (c) 1997-2026,BearBeetle
  */
