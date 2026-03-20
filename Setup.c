@@ -281,7 +281,9 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 
 			size_t len = q - p;
 			if (len > 0) {
-				strncpy(buf, p, len);
+				/* バッファ境界を超えないように調整し、strncpy_s を使用 */
+				if (len >= MAX_PATH) len = MAX_PATH - 1;
+				strncpy_s(buf, MAX_PATH, p, len);
 				buf[len] = '\0';
 				SendDlgItemMessageA(hwndDlg, IDC_LIST_CONTENTS, LB_ADDSTRING, 0, (LPARAM)buf);
 			}

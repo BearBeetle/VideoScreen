@@ -43,15 +43,17 @@ long    lCon;                // 再生インデックス保存
 HWND    hMainWnd;            // メインウィンドウ
 HWND    hVideoChild;         // 動画表示用子ウィンドウ
 HWND    hTitleWnd;           // タイトル表示ウィンドウ
-IMFPMediaPlayer* g_pPlayer = NULL; // Media Foundation メディアプレーヤー
-DWORD g_lastVolume = 100;   // ミュート前の音量を保存
+IMFPMediaPlayer* pPlayer = NULL; // Media Foundation メディアプレーヤー
+DWORD lastVolume = 100;      // ミュート前の音量を保存
 
 
 struct VSIZE {                // 動画サイズ
     long lWidth, lHeight;
 } stVSize;
 struct VSIZE stScreenSize;    // 画面サイズ
-HWAVEOUT hWaveOut;
+HWAVEOUT     hWaveOut;
+long         lPrimaryOffsetX = 0;
+long         lPrimaryOffsetY = 0;
 
 /* デバッグ用ログ出力 */
 void DBG_Print(char* strDat)
@@ -105,15 +107,15 @@ void Video_MuteOn(void)
     char buf[64];
 
     DBG_Print("Video_MuteOn called\n");
-    if (!g_pPlayer || !IsMute) return;
+    if (!pPlayer || !IsMute) return;
     DBG_Print("Video_MuteOn Set\n");
-    hr = IMFPMediaPlayer_GetVolume(g_pPlayer, (float *) &fLast_Volume);
+    hr = IMFPMediaPlayer_GetVolume(pPlayer, (float *) &fLast_Volume);
     if (FAILED(hr)) {
         sprintf_s(buf, sizeof(buf), "Video_MuteOn GetVolume failed: 0x%08X\n", hr);
         DBG_Print(buf);
     }
-    fLast_Volume = fLast_Volume * 100.0f;
-    hr = IMFPMediaPlayer_SetVolume(g_pPlayer, 0);
+    lastVolume = (DWORD)(fLast_Volume * 100.0f);
+    hr = IMFPMediaPlayer_SetVolume(pPlayer, 0);
     if (FAILED(hr)) {
         sprintf_s(buf, sizeof(buf), "Video_MuteOn SetVolume failed: 0x%08X\n", hr);
         DBG_Print(buf);
@@ -126,10 +128,10 @@ void Video_MuteOff(void)
     char buf[64];
 
     DBG_Print("Video_MuteOff called\n");
-    if (!g_pPlayer || !IsMute ) return;
+    if (!pPlayer || !IsMute ) return;
     DBG_Print("Video_MuteOff Set\n");
-    fLast_Volume = (float)g_lastVolume / 100.0f;
-    hr = IMFPMediaPlayer_SetVolume(g_pPlayer, fLast_Volume);
+    fLast_Volume = (float)lastVolume / 100.0f;
+    hr = IMFPMediaPlayer_SetVolume(pPlayer, fLast_Volume);
     if (FAILED(hr)) {
         sprintf_s(buf, sizeof(buf), "Video_MuteOff SetVolume failed: 0x%08X\n", hr);
         DBG_Print(buf);
@@ -144,12 +146,12 @@ MFP_MEDIAPLAYER_STATE Video_GetState()
     char buf[64];
 
     DBG_Print("Video_GetState called\n");
-    if (!g_pPlayer) {
+    if (!pPlayer) {
         return MFP_MEDIAPLAYER_STATE_EMPTY;
     }
 
     MFP_MEDIAPLAYER_STATE state;
-    hr = IMFPMediaPlayer_GetState(g_pPlayer, &state);
+    hr = IMFPMediaPlayer_GetState(pPlayer, &state);
     if (FAILED(hr)) {
         sprintf_s(buf, sizeof(buf), "Video_GetState GetState failed: 0x%08X\n", hr);
 		DBG_Print(buf);
@@ -167,14 +169,14 @@ HRESULT Video_Open(const wchar_t* filename)
     IMFPMediaItem* pItem = NULL;
     DBG_Print("Video_Open called\n");
 
-    if (g_pPlayer == NULL) return E_POINTER;
+    if (pPlayer == NULL) return E_POINTER;
 
     // 1. メディアアイテムを作成
-    hr = IMFPMediaPlayer_CreateMediaItemFromURL(g_pPlayer, filename, TRUE, 0, &pItem);
+    hr = IMFPMediaPlayer_CreateMediaItemFromURL(pPlayer, filename, TRUE, 0, &pItem);
 
     if (SUCCEEDED(hr)) {
         // 2. 【重要】作成したアイテムをプレーヤーに登録する
-        hr = IMFPMediaPlayer_SetMediaItem(g_pPlayer, pItem);
+        hr = IMFPMediaPlayer_SetMediaItem(pPlayer, pItem);
 
         // 登録後は pItem 自体は Release して構いません
         IMFPMediaItem_Release(pItem);
@@ -193,12 +195,12 @@ HRESULT Video_Open(const wchar_t* filename)
 void Video_Close()
 {
     DBG_Print("Video_Close called\n");
-    if (!g_pPlayer) return;
+    if (!pPlayer) return;
     Video_MuteOff();
-    if (g_pPlayer) {
-        IMFPMediaPlayer_Shutdown(g_pPlayer);
-        IMFPMediaPlayer_Release(g_pPlayer);
-        g_pPlayer = NULL;
+    if (pPlayer) {
+        IMFPMediaPlayer_Shutdown(pPlayer);
+        IMFPMediaPlayer_Release(pPlayer);
+        pPlayer = NULL;
     }
 }
 
@@ -206,12 +208,11 @@ void Video_Close()
 void Video_Stop()
 {
     DBG_Print("Video_Stop called\n");
-    if (Video_GetState() == MFP_MEDIAPLAYER_STATE_STOPPED)
-        return;
+    if (!pPlayer) return;
+    if (Video_GetState() == MFP_MEDIAPLAYER_STATE_STOPPED)  return;
 
     /* 一時停止 */
-    if (g_pPlayer)
-        IMFPMediaPlayer_Pause(g_pPlayer);
+    IMFPMediaPlayer_Pause(pPlayer);
 
     /*` 再生位置 -> ulPos */
     // 修正: GetPositionには引数が2つ必要です（guidPositionType, pvPositionValue）
@@ -219,12 +220,15 @@ void Video_Stop()
     PROPVARIANT varPos;
     PropVariantInit(&varPos);
     HRESULT hr = IMFPMediaPlayer_GetPosition(
-        g_pPlayer,
+        pPlayer,
         (const GUID *)&MFP_POSITIONTYPE_100NS, // ポインタ型にキャスト
         &varPos
     );
     if (SUCCEEDED(hr) && varPos.vt == VT_I8) {
+		char data[64];  
         ulPos = (ULONG)(varPos.hVal.QuadPart / 10000); // MFTIME to milliseconds
+		sprintf_s(data, sizeof(data), "Video_Stop GetPosition OK ulPos: %lu ms\n", ulPos);
+		DBG_Print(data);
     } else {
         ulPos = 0;
     }
@@ -236,24 +240,32 @@ BOOL Video_Play(void)
 {
     HRESULT hr;
     DBG_Print("Video_Play called\n");
-    if (!g_pPlayer) return FALSE;
+    if (!pPlayer) return FALSE;
 
-    // 2. シーク位置の計算（g_iIntTime ではなく g_iInterval を使用）
+    // 2. シーク位置の計算
     if (ulPos != 0) {
-        PROPVARIANT var;
-        PropVariantInit(&var);
-        var.vt = VT_I8;
-        hr = IMFPMediaPlayer_GetDuration(g_pPlayer, &MFP_POSITIONTYPE_100NS, &var);
-        if (SUCCEEDED(hr)) {
-            var.hVal.QuadPart = (LONGLONG)ulPos * 10000;
-            hr = IMFPMediaPlayer_SetPosition(g_pPlayer, &MFP_POSITIONTYPE_100NS, &var);
-            if (FAILED(hr)) DBG_Print("SetPosition failed\n");
+        PROPVARIANT varPos;
+        PropVariantInit(&varPos);
+
+        // 型をVT_I8（符号あり64ビット整数）に固定する
+        varPos.vt = VT_I8;
+        varPos.hVal.QuadPart = (LONGLONG)ulPos * 10000;
+
+        hr = IMFPMediaPlayer_SetPosition(pPlayer, &MFP_POSITIONTYPE_100NS, &varPos);
+
+        if (FAILED(hr)) {
+            char buf[64];
+            sprintf_s(buf, sizeof(buf), "SetPosition failed: 0x%08X\n", hr);
+            DBG_Print(buf);
         }
-        PropVariantClear(&var);
+        else {
+            DBG_Print("SetPosition OK\n");
+        }
+        PropVariantClear(&varPos);
     }
 
     // 3. 再生開始
-    hr = IMFPMediaPlayer_Play(g_pPlayer);
+    hr = IMFPMediaPlayer_Play(pPlayer);
     if (FAILED(hr)) {
         char buf[64];
         sprintf_s(buf, sizeof(buf), "IMFPMediaPlayer_Play failed: 0x%08X\n", hr);
@@ -267,14 +279,14 @@ BOOL Video_Play(void)
 /* ビデオウィンドウ移動 */
 void MoveVideoWindow(BOOL IsFirstCall, BOOL IsMove)
 {
-    RECT rc;
-    SIZE sz;    /* 動画の本来のサイズ */
+    RECT stRect;
+    SIZE stSize;    /* 動画の本来のサイズ */
 	HRESULT hr;
 
     DBG_Print("MoveVideoWindow called\n");
-    if (!g_pPlayer) return;
+    if (!pPlayer) return;
 
-    hr = IMFPMediaPlayer_GetNativeVideoSize(g_pPlayer, &sz, NULL);
+    hr = IMFPMediaPlayer_GetNativeVideoSize(pPlayer, &stSize, NULL);
     if (FAILED(hr)) {
         DBG_Print("GetNativeVideoSize err\n");
         ErrVideoMsg(hr);
@@ -291,12 +303,12 @@ void MoveVideoWindow(BOOL IsFirstCall, BOOL IsMove)
 
     // 倍率をかける
     if (lZoom == 0) {
-        stVSize.lWidth = stScreenSize.lWidth;
+        stVSize.lWidth  = stScreenSize.lWidth;
         stVSize.lHeight = stScreenSize.lHeight;
     }
     else {
-        stVSize.lWidth = (sz.cx * lZoom) / 100;
-        stVSize.lHeight = (sz.cy * lZoom) / 100;
+        stVSize.lWidth  = (stSize.cx * lZoom) / 100;
+        stVSize.lHeight = (stSize.cy * lZoom) / 100;
     }
 
 	// stVSize = 表示する動画サイズ（倍率をかけたサイズ）
@@ -310,36 +322,36 @@ void MoveVideoWindow(BOOL IsFirstCall, BOOL IsMove)
         char buf[128];
         sprintf_s(buf, sizeof(buf), "stVSize size: %ld x %ld\n", stVSize.lWidth, stVSize.lHeight);
         DBG_Print(buf);
-        sprintf_s(buf, sizeof(buf), "Video size: %ld x %ld\n", sz.cx, sz.cy);
+        sprintf_s(buf, sizeof(buf), "Video size: %ld x %ld\n", stSize.cx, stSize.cy);
         DBG_Print(buf);
     }
 
-    GetClientRect(hVideoChild, &rc);
+    GetClientRect(hVideoChild, &stRect);
     if (IsMove) {
-        rc.left = (rand() * (stScreenSize.lWidth - stVSize.lWidth)) / RAND_MAX;
-        rc.top = (rand() * (stScreenSize.lHeight - stVSize.lHeight)) / RAND_MAX;
+        stRect.left = lPrimaryOffsetX + (rand() * (stScreenSize.lWidth - stVSize.lWidth)) / RAND_MAX;
+        stRect.top  = lPrimaryOffsetY + (rand() * (stScreenSize.lHeight - stVSize.lHeight)) / RAND_MAX;
     }
     else {
-        rc.left = (stScreenSize.lWidth - stVSize.lWidth) / 2;
-        rc.top = (stScreenSize.lHeight - stVSize.lHeight) / 2;
+        stRect.left = lPrimaryOffsetX + (stScreenSize.lWidth - stVSize.lWidth) / 2;
+        stRect.top  = lPrimaryOffsetY + (stScreenSize.lHeight - stVSize.lHeight) / 2;
     }
-    rc.right = rc.left + stVSize.lWidth;
-    rc.bottom = rc.top + stVSize.lHeight;
+    stRect.right  = stRect.left + stVSize.lWidth;
+    stRect.bottom = stRect.top + stVSize.lHeight;
     {
 		char buf[128];
         sprintf_s(buf, sizeof(buf), "Calculated video position: left=%ld, top=%ld, right=%ld, bottom=%ld\n",
-			rc.left, rc.top, rc.right, rc.bottom);
+            stRect.left, stRect.top, stRect.right, stRect.bottom);
 		DBG_Print(buf);
     }
 
     // IMFPMediaPlayer::UpdateVideo は引数を取らないため、
     // 表示先矩形はプレーヤーが返すビデオ HWND を移動／サイズ変更して指定します。
-    SetWindowPos(hVideoChild, HWND_TOP, rc.left, rc.top,
-                     rc.right - rc.left, rc.bottom - rc.top,
-                     SWP_NOZORDER | SWP_NOACTIVATE);
+    SetWindowPos(hVideoChild, HWND_TOP, stRect.left, stRect.top,
+        stRect.right - stRect.left, stRect.bottom - stRect.top,
+        SWP_NOZORDER | SWP_NOACTIVATE);
 
     // 描画更新を通知
-    IMFPMediaPlayer_UpdateVideo(g_pPlayer);
+    IMFPMediaPlayer_UpdateVideo(pPlayer);
 
     DBG_Print("MoveVideoWindow End\n");
 
@@ -427,10 +439,10 @@ void PlayNextContent(BOOL IsMove)
         else {
             if (IsCont) {	// 続き再生
                 lCon = (long)iCount;
-            }
+            } 
         }
-        if (g_pPlayer != NULL) {
-            DBG_Print("g_pPlayer != NULL\n");
+        if (pPlayer != NULL) {
+            DBG_Print("pPlayer != NULL\n");
             Video_Stop();
             Video_Close();
         }
@@ -440,7 +452,7 @@ void PlayNextContent(BOOL IsMove)
 
     case 1:
         DBG_Print("PlayNextContent Step1 Start\n");
-        hr = MFPCreateMediaPlayer(NULL, FALSE, 0, NULL, hVideoChild, &g_pPlayer);
+        hr = MFPCreateMediaPlayer(NULL, FALSE, 0, NULL, hVideoChild, &pPlayer);
         if (FAILED(hr)) {
             ErrVideoMsg(hr);
             Video_Stop();
@@ -479,7 +491,7 @@ void PlayNextContent(BOOL IsMove)
         if (Video_GetState() == MFP_MEDIAPLAYER_STATE_EMPTY) {
             static int retryCount = 0;
             DBG_Print("PlayNextContent Step3 (State=MFP_MEDIAPLAYER_STATE_EMPTY) End\n");
-            if (retryCount < 50) {
+            if (retryCount < 100) {
                 retryCount++;
             } else {
 				retryCount = 0;
@@ -528,8 +540,8 @@ void PlayNextContent(BOOL IsMove)
 
 	case 5:
 		DBG_Print("PlayNextContent Step5 Start\n");
-        if (g_pPlayer == NULL) {
-            DBG_Print("PlayNextContent Step5 End g_pPlayer == NULL\n");
+        if (pPlayer == NULL) {
+            DBG_Print("PlayNextContent Step5 End pPlayer == NULL\n");
             IsCancel = TRUE;
             break;
         }
@@ -550,8 +562,8 @@ void PlayNextContent(BOOL IsMove)
 
     case 6:
         DBG_Print("PlayNextContent Step6 Start\n");
-        if (g_pPlayer == NULL) {
-            DBG_Print("PlayNextContent Step6 End g_pPlayer == NULL\n");
+        if (pPlayer == NULL) {
+            DBG_Print("PlayNextContent Step6 End pPlayer == NULL\n");
             IsCancel = TRUE;
             break;
         }
@@ -597,13 +609,19 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	static HBRUSH hBrushBlack; // 動画子ウィンドウ用の黒ブラシ
 
 
-    RECT rect;
     HDC hDc;
     PAINTSTRUCT ps;
     static HICON hicon = NULL;
 
     switch (uMsg) {
     case WM_PAINT:
+        if (hwnd != hMainWnd && !IsSmall) {
+			// 2ndy以降のウィンドウは黒で塗りつぶす
+			hDc = BeginPaint(hwnd, &ps);
+			FillRect(hDc, &ps.rcPaint, hBrushBlack);
+            EndPaint(hwnd, &ps);
+            break;
+		}
         if (IsSmall) {
             hDc = BeginPaint( hwnd, &ps );
             if (hicon) {
@@ -615,8 +633,8 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             hDc = BeginPaint(hwnd, &ps);
 
             // MFPlayに描画を更新させる
-            if (g_pPlayer) {
-                IMFPMediaPlayer_UpdateVideo(g_pPlayer);
+            if (pPlayer) {
+                IMFPMediaPlayer_UpdateVideo(pPlayer);
             }
 
             EndPaint(hwnd, &ps);
@@ -626,38 +644,71 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_CREATE:
-        hicon = LoadIconA(hMainInstance, MAKEINTRESOURCEA(IDI_ICON1) );
+        hicon = LoadIconA(hMainInstance, MAKEINTRESOURCEA(IDI_ICON1));
+        {
+		    RECT stRect;
+            long lWidth;
+            GetWindowRect(hwnd, &stRect);
+            lWidth = stRect.right - stRect.left;
+            if (lWidth < 400) {
+                IsSmall = TRUE;
+                IsEnd = TRUE;
+                hMainWnd = hwnd;
+                break;
+            }
+        }
+        {
+            // 現在のウィンドウが存在するモニターのハンドルを取得
+            HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO mi;
+            mi.cbSize = sizeof(MONITORINFO);
+            if (GetMonitorInfo(hMonitor, &mi)) {
+                // プライマリモニターかどうかの判定
+                if (mi.dwFlags & MONITORINFOF_PRIMARY) {
+                    char buf[128];
+                    RECT stPrimaryRect = mi.rcMonitor;
+
+                    // プライマリ画面サイズを取得
+                    stScreenSize.lHeight = mi.rcMonitor.bottom - mi.rcMonitor.top;
+					stScreenSize.lWidth = mi.rcMonitor.right - mi.rcMonitor.left;   
+                    sprintf_s(buf, sizeof(buf), "Primary monitor detected(%08X): width=%ld, height=%ld\n", (DWORD)hwnd, stScreenSize.lWidth, stScreenSize.lHeight);
+					DBG_Print(buf);
+
+                    // スクリーン座標(全体)を、hMainWnd内のクライアント座標(相対)に変換する
+                    MapWindowPoints(HWND_DESKTOP, hwnd, (LPPOINT)&stPrimaryRect, 2);
+					lPrimaryOffsetX = stPrimaryRect.left;
+					lPrimaryOffsetY = stPrimaryRect.top;
+                    sprintf_s(buf, sizeof(buf), "Primary monitor offset: X=%ld, Y=%ld\n", lPrimaryOffsetX, lPrimaryOffsetY);
+                    DBG_Print(buf);
+
+                } else {
+					// プライマリモニターでない場合はWM_CREATEを抜ける　（ここは通らないが念のため）
+                    char buf[128];
+                    sprintf_s(buf, sizeof(buf), "Secondry monitor detected(%08X)\n", (DWORD)hwnd);
+                    DBG_Print(buf);
+                    break;
+                }
+            } else {
+                // モニター情報の取得に失敗した場合はWM_CREATEを抜ける
+                DBG_Print("GetMonitorInfo Fail\n");
+                IsSmall = TRUE;
+                IsEnd = TRUE;
+                break;
+			}
+        }
         IniFileCreate();
         IsFirst = TRUE;
         hMainWnd = hwnd;
-        GetWindowRect(hwnd, &rect);
-        stScreenSize.lWidth = rect.right - rect.left;
-        if (stScreenSize.lWidth < 400) {
+        hVideoChild = CreateWindowEx( 0, TEXT("STATIC"), NULL,
+                        WS_CHILD | WS_VISIBLE ,                         // 子ウィンドウとして表示
+                        lPrimaryOffsetX, lPrimaryOffsetY, stScreenSize.lWidth, stScreenSize.lHeight,   // 位置とサイズ
+                        hMainWnd,                                       // 親ウィンドウのハンドル
+                        (HMENU)101, hMainInstance, NULL );
+        if (hVideoChild == NULL) {
             IsSmall = TRUE;
             IsEnd = TRUE;
-            break;
         }
-        {
-            RECT rc;
-            GetClientRect(hMainWnd, &rc);
-            hVideoChild = CreateWindowEx(
-                0,
-                TEXT("STATIC"),        // クラス名。単純な矩形なら "STATIC" でOK
-                NULL,
-                WS_CHILD | WS_VISIBLE , // 子ウィンドウとして表示
-                0, 0, rc.right - rc.left, rc.bottom - rc.top,   // 位置とサイズ
-                hMainWnd,           // 親ウィンドウのハンドル
-                (HMENU)101,
-                hMainInstance,
-                NULL
-            );
-            hBrushBlack = CreateSolidBrush(RGB(0, 0, 0)); // 動画子ウィンドウ用の黒ブラシ
-        }
-        if (hVideoChild == NULL) {
-            DWORD error = GetLastError();
-            char strDat[100];
-            sprintf_s(strDat, sizeof(strDat), "CreateWindowEx failed! %u", error);
-        }
+        hBrushBlack = CreateSolidBrush(RGB(0, 0, 0)); // 動画子ウィンドウ用の黒ブラシ
         LoadStringA(hMainInstance, IDS_SECTION_NAME, strSection, (int)sizeof(strSection));
         LoadStringA(hMainInstance, IDS_KEY_NAME, strKey, (int)sizeof(strKey));
         GetPrivateProfileStringA(strSection, strKey, "", strFileNames, (DWORD)sizeof(strFileNames), strIniFile);
@@ -743,7 +794,6 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         /* メディアプレーヤー初期化 */
         CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
         MFStartup(MF_VERSION, MFSTARTUP_FULL);
-
         break;
 
     case WM_TIMER:
@@ -811,12 +861,20 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_LBUTTONDOWN:    //  Terminates the screen saver.
     case WM_MBUTTONDOWN:    //  Terminates the screen saver.
     case WM_RBUTTONDOWN:    //  Terminates the screen saver.
+        if (hwnd != hMainWnd) {
+            // 2ndy以降のウィンドウでは処理しない
+            break;
+        }
         if (IsTimeInt)      // タイマ処理中は無視 v1.71
             return FALSE;
         IsEnd = TRUE;
         break;
 
     case WM_KEYDOWN:        //  Terminates the screen saver.
+        if (hwnd != hMainWnd) {
+            // 2ndy以降のウィンドウでは処理しない
+            break;
+        }
         if (IsTimeInt)      // タイマ処理中は無視 v1.71
             return FALSE;
 
@@ -844,7 +902,7 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 varPos.vt = VT_I8;
                 varPos.hVal.QuadPart = 0;
                 IMFPMediaPlayer_SetPosition(
-                    g_pPlayer,
+                    pPlayer,
                     (const GUID *)&MFP_POSITIONTYPE_100NS,
                     &varPos
                 );
@@ -879,6 +937,10 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_USER:
+        if (hwnd != hMainWnd) {
+            // 2ndy以降のウィンドウでは処理しない
+            break;
+        }
         nMauseMoveCount++;
         if (nMauseMoveCount > 10) {
             IsEnd = TRUE;
@@ -887,6 +949,10 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_MOUSEMOVE:
+        if (hwnd != hMainWnd) {
+            // 2ndy以降のウィンドウでは処理しない
+            break;
+        }
         if (IsTimeInt)
             return FALSE;
         nMauseMoveCount++;
@@ -898,6 +964,10 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_CLOSE:
     case WM_DESTROY:
+        if (hwnd != hMainWnd) {
+            // 2ndy以降のウィンドウでは処理しない
+            break;
+        }
         if (IsEnd == FALSE)
             return FALSE;
         if (uTimer) {
@@ -908,6 +978,7 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             KillTimer(hwnd, uTimer2);
             uTimer2 = 0;
         }
+        Video_Stop();
 		Video_Close();
         TitleWndOff();
         {
