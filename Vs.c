@@ -841,7 +841,7 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             IsTimeInt = TRUE;
             uMinCount++;
             if (uMinCount >= uEndValue) {
-				Video_Stop();
+                Video_Stop();
                 Video_Close();
                 IsEnd = FALSE;
                 if (uTimer) {
@@ -852,7 +852,9 @@ LONG WINAPI ScreenSaverProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     KillTimer(hwnd, uTimer2);
                     uTimer2 = 0;
                 }
-                IsSmall = TRUE;
+                DBG_Print("END Event Detected !!!!!!\n");
+                PostMessage(hVideoChild, WM_CLOSE, 0, 0);
+                hMainWnd = NULL;
             }
             IsTimeInt = FALSE;
         }
