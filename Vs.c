@@ -3,8 +3,8 @@
  * ビデオスクリーンセーバ
  * 
  * <履歴>
- * V1.2 2018/XX/XX  VC6 → VS2022(v143) 対応修正：ANSI API 明示、関数プロトタイプ修正、バッファ安全化)
- * V3.0 2026/03/XX  動画再生をMCIからWMP(Windows Media Player)に変更
+ * V1.20 2018/XX/XX  VC6 → VS2022(v143) 対応修正：ANSI API 明示、関数プロトタイプ修正、バッファ安全化)
+ * V3.00 2026/03/21  動画再生をMCIからWMP(Windows Media Player)に変更
  *
  * (c) 1997-2026,BearBeetle
  */
@@ -283,16 +283,23 @@ void MoveVideoWindow(BOOL IsFirstCall, BOOL IsMove)
     SIZE stSize;    /* 動画の本来のサイズ */
 	HRESULT hr;
 
-    DBG_Print("MoveVideoWindow called\n");
+    if(IsMove) {
+        DBG_Print("MoveVideoWindow called with IsMove=TRUE\n");
+    } else {
+        DBG_Print("MoveVideoWindow called with IsMove=FALSE\n");
+	}
     if (!pPlayer) return;
 
     hr = IMFPMediaPlayer_GetNativeVideoSize(pPlayer, &stSize, NULL);
     if (FAILED(hr)) {
         DBG_Print("GetNativeVideoSize err\n");
         ErrVideoMsg(hr);
-        Video_Stop();
-        Video_Close();
-        return;
+        hr = IMFPMediaPlayer_GetNativeVideoSize(pPlayer, &stSize, NULL);
+        if (FAILED(hr)) {
+            Video_Stop();
+            Video_Close();
+            return;
+        }
     }
 
     // stScreenSize = 拡大可能な最大の動画サイズ（指定無し時はスクリーンサイズ）
@@ -330,10 +337,12 @@ void MoveVideoWindow(BOOL IsFirstCall, BOOL IsMove)
     if (IsMove) {
         stRect.left = lPrimaryOffsetX + (rand() * (stScreenSize.lWidth - stVSize.lWidth)) / RAND_MAX;
         stRect.top  = lPrimaryOffsetY + (rand() * (stScreenSize.lHeight - stVSize.lHeight)) / RAND_MAX;
+		DBG_Print("MoveVideoWindow Random Positioning\n");
     }
     else {
         stRect.left = lPrimaryOffsetX + (stScreenSize.lWidth - stVSize.lWidth) / 2;
         stRect.top  = lPrimaryOffsetY + (stScreenSize.lHeight - stVSize.lHeight) / 2;
+		DBG_Print("MoveVideoWindow Centering\n");
     }
     stRect.right  = stRect.left + stVSize.lWidth;
     stRect.bottom = stRect.top + stVSize.lHeight;

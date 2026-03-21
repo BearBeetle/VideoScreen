@@ -3,7 +3,7 @@
  *
  *	オリジナル：VC6 / Windows XP 向け
  *	更新：v1.43 VS2022向けに修正 (ANSI API 明示、標準関数へ置換、関数プロトタイプ修正)
- *        V3.00 2026/03/02  動画再生をMCIからWindows Media Playerに変更
+ *        v3.00 2026/03/21  動画再生をMCIからWindows Media Playerに変更
  * 
  *	(c) 1997-2026, BearBeetle
  *
