@@ -1,3 +1,5 @@
+# VideoScreen (ヴィデオ・スクリーン)
+
 **English** | [日本語](#日本語-japanese)
 
 VideoScreen is a video playback screensaver for Windows. 
@@ -13,8 +15,12 @@ Originally developed in 1997, it has been continuously maintained and was recent
   * `R`: Restart the current video
   * `S`: Toggle mute on/off
 
+## Download
+You can download the latest pre-compiled package (`Vs300.zip`) from our official website:
+👉 **[BB Programming Lab. Official Website](https://bearbeetle.github.io/bb-labo/)**
+
 ## Installation & Usage
-1. Download or build the `VS.SCR` file.
+1. Extract the downloaded zip file or build the `VS.SCR` file from source.
 2. Copy `VS.SCR` to any folder (or `C:\Windows\System32`).
 3. Right-click `VS.SCR` and select **"Install"**.
 4. Configure your video list and preferences via the standard Windows Screen Saver settings.
@@ -45,22 +51,27 @@ Copyright (c) 1997-2026 BearBeetle.
 * **焼き付き防止:** 動画の表示位置が定期的に変化します。表示サイズも任意に設定可能です。
 * **キーボード操作:** スクリーンセーバー起動中、以下のキー操作が可能です：
   * `N` キー: 次の動画へスキップ
-  * `R` キー: 現在の動画の頭出し（最初から再生）
-  * `S` キー: 消音のON/OFF切り替え
+  * `R` キー: 現在の動画を最初から再生
+  * `S` キー: 消音（ミュート）のON/OFFを切り替え
+
+## ダウンロード
+コンパイル済みの実行ファイルパッケージ（`Vs300.zip`）は、以下の公式サイトからダウンロードできます：
+👉 **[ＢＢ研究所 公式サイト](https://bearbeetle.github.io/bb-labo/)**
 
 ## インストールと使い方
-1. ビルド済み、またはご自身でビルドした `VS.SCR` を任意のフォルダーに配置します。
-2. `VS.SCR` を右クリックし、**「インストール」** を選択します。
-3. Windowsのスクリーンセーバー設定画面から「設定」を開き、再生したい動画ファイルやURLを登録してください。
+1. ダウンロードしたzipファイルを解凍するか、ソースから `VS.SCR` をビルドします。
+2. `VS.SCR` を任意のフォルダ（または `C:\Windows\System32`）にコピーします。
+3. `VS.SCR` を右クリックして **「インストール」** を選択します。
+4. Windows標準のスクリーンセーバー設定画面から、再生したい動画リストや各種設定を行います。
 
-詳細な設定方法や注意事項については、公式マニュアルをご覧ください。
-👉 **[オンラインマニュアル（日本語）](https://bearbeetle.github.io/bb-labo/vs_help_j.html)**
+詳細な設定方法や仕様については、公式オンラインマニュアルをご参照ください：
+👉 **[オンラインマニュアル (日本語)](https://bearbeetle.github.io/bb-labo/vs_help_j.html)**
 
-## ビルド方法（開発者向け）
+## ビルド手順（開発者向け）
 1. Visual Studio 2022 で `VS.sln` を開きます。
 2. ソリューションをビルドします。
-3. 出力された `VS.SCR` を右クリックしてインストールしてください。
+3. 生成された `.scr` ファイルを上記の手順でインストールできます。
 
 ## ライセンス
-このプロジェクトは MIT ライセンスの下で公開されています。詳細は [LICENSE](LICENSE) ファイルをご覧ください。  
+本プロジェクトは MIT ライセンスの下で公開されています。詳細については [LICENSE](LICENSE) ファイルをご覧ください。  
 Copyright (c) 1997-2026 BearBeetle.
